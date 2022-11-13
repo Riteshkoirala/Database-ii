@@ -1,0 +1,622 @@
+--GROUP 11
+
+--Group Members: 
+
+--Adwait Khadka (21422146)
+
+--Nischal Tamang (21422001)
+
+--Ritesh Koirala(21422051) 
+
+--Tshering Sherpa (21422040)
+
+COLUMN object_name FORMAT A30;
+COLUMN object_type FORMAT A12;
+PURGE RECYCLEBIN;
+SELECT object_name, object_type FROM user_objects;
+
+SET SERVEROUTPUT ON
+CREATE OR REPLACE TYPE address_type AS OBJECT(
+	city VARCHAR2(50),
+	street VARCHAR2(50),
+	country VARCHAR2(50),
+	zip_code NUMBER(10));
+/
+
+CREATE TABLE addresses OF address_type;
+
+
+CREATE OR REPLACE TYPE cost_type AS OBJECT(
+	amount NUMBER(10),
+	discount NUMBER(10),
+	total_amount NUMBER(10)
+);
+/
+
+CREATE TYPE cost_varray_type AS VARRAY(55) OF cost_type;
+/
+
+
+CREATE OR REPLACE TYPE scheme_type AS OBJECT(
+	mentor_name VARCHAR2(50),
+	convention_name VARCHAR2(50)
+);
+/
+
+CREATE TYPE scheme_table_type AS TABLE OF scheme_type;
+/
+
+
+CREATE TABLE accommodation_style(
+	accommodation_style_id NUMBER(10),
+	accommodation_type VARCHAR2(50),
+	description VARCHAR2(50)
+);
+
+
+
+
+CREATE TABLE accommodation(
+	accommodation_id NUMBER(10),
+	arrival_date DATE,
+	no_of_room NUMBER(10),
+	accommodation_style_id NUMBER(10),
+	cost cost_varray_type,
+	address REF address_type SCOPE IS addresses
+);
+
+
+CREATE TABLE retreat(
+	retreat_id NUMBER(10),
+	retreat_name VARCHAR2(50),
+	description VARCHAR2(50)
+);
+
+
+CREATE TABLE setting(
+	setting_id NUMBER(10),
+	setting_name VARCHAR2(50),
+	description VARCHAR2(50)
+);
+
+
+
+CREATE TABLE retreat_setting(
+	retreat_setting_id NUMBER(10),
+	retreat_id NUMBER(10),
+	setting_id NUMBER(10)
+);
+
+
+
+CREATE TABLE retreat_accommodation(
+	retreat_accommodation_id NUMBER(10),
+	retreat_id NUMBER(10),
+	accommodation_id NUMBER(10),
+	scheme scheme_table_type)
+NESTED TABLE scheme STORE AS nested_scheme_table_type;
+
+
+CREATE TABLE review(
+	review_id NUMBER(10),
+	user_name VARCHAR2(45),
+	review_Point NUMBER(10),
+	retreat_setting_id NUMBER(10),
+	feedback VARCHAR2(100)
+);
+
+--ALTER
+
+--altering table accommoation_style for constraints
+ALTER TABLE accommodation_style
+	ADD CONSTRAINT PK_accommodation_style PRIMARY KEY (accommodation_style_id)
+	MODIFY accommodation_type VARCHAR2(50) NOT NULL
+	MODIFY description VARCHAR2(50) NOT NULL;
+
+
+
+--altering table accommoation for constraints
+ALTER TABLE accommodation
+	ADD CONSTRAINT accommodation PRIMARY KEY (accommodation_id)
+	MODIFY no_of_room NUMBER(10) NOT NULL
+	ADD CONSTRAINT FK_accommodation
+	FOREIGN KEY (accommodation_style_id) REFERENCES accommodation_style(accommodation_style_id);
+
+
+
+--altering table retreat for constraints
+ALTER TABLE retreat
+	ADD CONSTRAINT PK_retreat PRIMARY KEY (retreat_id)
+	MODIFY retreat_name VARCHAR2(50) NOT NULL
+	MODIFY description VARCHAR2(50) NOT NULL;
+
+
+
+--altering table setting for constraints
+ALTER TABLE setting
+	ADD CONSTRAINT PK_setting PRIMARY KEY (setting_id)
+	MODIFY setting_name VARCHAR2(50) NOT NULL
+	MODIFY description VARCHAR2(50) NOT NULL;
+
+
+
+--altering table retreat_setting for constraints
+ALTER TABLE retreat_setting
+	ADD CONSTRAINT PK_retreat_setting PRIMARY KEY (retreat_setting_id)
+	ADD CONSTRAINT FK_RetreatSetting
+	FOREIGN KEY (retreat_id) REFERENCES retreat(retreat_id)
+	ADD CONSTRAINT FK_SettingRetreat
+	FOREIGN KEY (setting_id) REFERENCES setting(setting_id);
+
+
+
+--altering table retreat_accommodation for constraints
+ALTER TABLE retreat_accommodation
+	ADD CONSTRAINT PK_retreat_accommodation PRIMARY KEY (retreat_accommodation_id)
+	ADD CONSTRAINT FK_RetreatAccommodation
+	FOREIGN KEY (retreat_id) REFERENCES retreat(retreat_id)
+	ADD CONSTRAINT FK_AccommodationRetreat
+	FOREIGN KEY (accommodation_id) REFERENCES accommodation(accommodation_id);
+
+
+
+--altering table review for constraints
+ALTER TABLE review
+	ADD CONSTRAINT PK_review PRIMARY KEY (review_id)
+	MODIFY user_name VARCHAR2(45) NOT NULL 
+	MODIFY review_Point NUMBER(10) NOT NULL 
+	ADD CONSTRAINT FK_review 
+	FOREIGN KEY (retreat_setting_id) REFERENCES retreat_setting(retreat_setting_id)
+	MODIFY feedback VARCHAR2(100) NOT NULL;
+
+--NORMAL PROCEDURES INSERT NISCHAL NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+
+CREATE SEQUENCE seq_accommmodation_style_id
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 500
+CACHE 10;
+
+CREATE OR REPLACE PROCEDURE proc_style_accommodation_insert(in_accommodation_type VARCHAR2, in_description VARCHAR2) IS
+BEGIN
+    INSERT INTO accommodation_style(accommodation_style_id, accommodation_type, description)
+    VALUES (seq_accommmodation_style_id.nextval,in_accommodation_type,in_description);
+
+    DBMS_OUTPUT.PUT_LINE('A new row has been inserted into accommodation style table.');
+
+END proc_style_accommodation_insert;
+/
+SHOW ERRORS;
+EXECUTE proc_style_accommodation_insert('cabin', 'private space for travellers');
+EXECUTE proc_style_accommodation_insert('teepee', 'special cone shaped tents');
+EXECUTE proc_style_accommodation_insert('luxury', 'abundance ease and comfort');
+EXECUTE proc_style_accommodation_insert('rustic', 'simple and rough');
+EXECUTE proc_style_accommodation_insert('tree house', 'treeshed among the trunk or branches');
+
+
+
+CREATE OR REPLACE PROCEDURE proc_insert_addresses(in_street IN VARCHAR2, in_city IN VARCHAR2, in_country IN VARCHAR2, in_zip_code IN NUMBER) IS
+
+BEGIN
+    INSERT INTO addresses (street,city,country,zip_code)
+    VALUES (in_street,in_city,in_country, in_zip_code);
+    DBMS_OUTPUT.PUT_LINE('ROW INSERTED SUCESSFULLY');
+END proc_insert_addresses;
+/
+SHOW ERRORS;
+EXECUTE proc_insert_addresses('Sankhu', 'Ktm', 'Nepal', 44600);
+EXECUTE proc_insert_addresses('Jorpati', 'Ktm', 'Nepal', 44600);
+EXECUTE proc_insert_addresses('Maitidevi', 'Ktm', 'Nepal', 44600);
+EXECUTE proc_insert_addresses('Thamel', 'Ktm', 'Nepal', 44600);
+EXECUTE proc_insert_addresses('Sabda Marga', 'Ktm', 'Nepal', 44600);
+
+
+
+
+INSERT INTO accommodation
+SELECT 1, TO_DATE('1989-12-09','YYYY-MM-DD'), 5, 2, cost_varray_type(cost_type(10000, 900, 9100)),
+REF (a)
+FROM addresses a 
+WHERE street = 'Sankhu';
+
+INSERT INTO accommodation
+SELECT 2, TO_DATE('1999-11-09','YYYY-MM-DD'), 4, 2, cost_varray_type(cost_type(20000, 900, 19100)),
+REF (a)
+FROM addresses a 
+WHERE street = 'Jorpati';
+
+INSERT INTO accommodation
+SELECT 3, TO_DATE('1949-12-09','YYYY-MM-DD'), 3, 2, cost_varray_type(cost_type(30000, 900, 29100)),
+REF (a)
+FROM addresses a 
+WHERE street = 'Thamel';
+
+INSERT INTO accommodation
+SELECT 4, TO_DATE('1999-11-09','YYYY-MM-DD'), 4, 2, cost_varray_type(cost_type(30000, 900, 10100)),
+REF (a)
+FROM addresses a 
+WHERE street = 'Maitidevi';
+
+INSERT INTO accommodation
+SELECT 5, TO_DATE('1949-12-09','YYYY-MM-DD'), 3, 2, cost_varray_type(cost_type(40000, 900, 20100)),
+REF (a)
+FROM addresses a 
+WHERE street = 'Sabda Marga';
+
+
+
+CREATE SEQUENCE seq_setting_id
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 500
+CACHE 10;
+
+CREATE OR REPLACE PROCEDURE proc_insert_setting(in_setting_name VARCHAR2, in_description VARCHAR2) IS
+BEGIN
+    INSERT INTO setting(setting_id, setting_name, description)
+    VALUES (seq_setting_id.nextval,in_setting_name,in_description);
+
+    DBMS_OUTPUT.PUT_LINE('ROW INSERTED SUCESSFULLY');
+
+END proc_insert_setting;
+/
+SHOW ERRORS;
+EXECUTE proc_insert_setting('costal', 'coolera than places inland');
+EXECUTE proc_insert_setting('woodland', 'open grassy spaces');
+EXECUTE proc_insert_setting('lakeside', 'summer cottage on the lakeside');
+EXECUTE proc_insert_setting('winter wonderland', 'a lodge with soft wollen blankers');
+EXECUTE proc_insert_setting('eco friendly', 'not environmentally harmful');
+
+
+
+CREATE SEQUENCE seq_retreat_id
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 500
+CACHE 10;
+
+CREATE OR REPLACE PROCEDURE proc_insert_retreat(in_retreat_name VARCHAR2, in_description VARCHAR2) IS
+BEGIN
+	INSERT INTO retreat(retreat_id, retreat_name, description)
+	VALUES (seq_retreat_id.nextval,in_retreat_name,in_description);
+
+    DBMS_OUTPUT.PUT_LINE('ROW INSERTED SUCESSFULLY');
+
+END proc_insert_retreat;
+/
+SHOW ERRORS; 
+EXECUTE proc_insert_retreat('Personal Growth', 'level up yourself to become best self');
+EXECUTE proc_insert_retreat('Self Discovery', 'discover the real you');
+EXECUTE proc_insert_retreat('Spiritual', 'closer connection with spiritual things');
+EXECUTE proc_insert_retreat('Fitness', 'promote health and longevity');
+EXECUTE proc_insert_retreat('Emotional Healing', 'addresses traumatic events');
+
+
+
+CREATE SEQUENCE seq_main_id
+START WITH 1
+INCREMENT BY 1
+MINVALUE 1
+MAXVALUE 500
+CACHE 10;
+
+CREATE OR REPLACE PROCEDURE proc_insert_converge(in_retreat_id VARCHAR2, in_accommodation_id NUMBER, in_mentor_name VARCHAR2, in_convention_name VARCHAR2) IS
+BEGIN
+	INSERT INTO retreat_accommodation(retreat_accommodation_id, retreat_id, accommodation_id, scheme)
+	VALUES (seq_main_id.nextval, in_retreat_id, in_accommodation_id, scheme_table_type(scheme_type(in_mentor_name,in_convention_name)));
+
+    DBMS_OUTPUT.PUT_LINE('ROW INSERTED SUCESSFULLY');
+
+END proc_insert_converge;
+/
+SHOW ERRORS;
+EXECUTE proc_insert_converge(1, 3, 'Ritesh','well trained');
+EXECUTE proc_insert_converge(3, 1, 'Nischal','acrobatic');
+EXECUTE proc_insert_converge(2, 2, 'Adwait','exceptional');
+EXECUTE proc_insert_converge(3, 2, 'Tshering','beginner');
+EXECUTE proc_insert_converge(1, 3, 'Dipak','intermediate');
+
+
+
+CREATE OR REPLACE PROCEDURE proc_insert_retreat_setting(in_id NUMBER, in_retreat_id NUMBER, in_setting_id NUMBER) IS
+BEGIN
+	INSERT INTO retreat_setting(retreat_setting_id, retreat_id, setting_id)
+	VALUES (in_id, in_retreat_id, in_setting_id);
+
+    DBMS_OUTPUT.PUT_LINE('ROW INSERTED SUCESSFULLY');
+
+END proc_insert_retreat_setting;
+/
+SHOW ERRORS;
+EXECUTE proc_insert_retreat_setting(1, 5, 3);
+EXECUTE proc_insert_retreat_setting(2, 4, 1);
+EXECUTE proc_insert_retreat_setting(3, 2, 5);
+EXECUTE proc_insert_retreat_setting(4, 3, 2);
+EXECUTE proc_insert_retreat_setting(5, 1, 4);
+
+
+
+CREATE OR REPLACE PROCEDURE proc_insert_review(in_review_id NUMBER, in_username VARCHAR2, in_review_point NUMBER, in_retreat_setting_id NUMBER, in_feedback VARCHAR2) IS
+BEGIN
+	INSERT INTO review(review_id, user_name, review_Point, retreat_setting_id, feedback)
+	VALUES (in_review_id, in_username, in_review_point, in_retreat_setting_id, in_feedback);
+
+    DBMS_OUTPUT.PUT_LINE('ROW INSERTED SUCESSFULLY');
+
+END proc_insert_review;
+/
+SHOW ERRORS;
+EXECUTE proc_insert_review(1, 'Ritesh', 4, 1, 'VERY GOOD');
+EXECUTE proc_insert_review(2, 'Nischal', 3, 4, 'EXCELLENT');
+EXECUTE proc_insert_review(3, 'Kirito', 2, 5, 'BRILLIANT');
+EXECUTE proc_insert_review(4, 'Adwait', 5, 2, 'AMAZING');
+EXECUTE proc_insert_review(5, 'Tshering', 3, 3, 'GOOD');
+
+--FUNCTIONS NISCHAL NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+
+//TO find the individual total expense.
+
+CREATE OR REPLACE FUNCTION func_sum_total_amount(in_accommodation_id NUMBER)
+RETURN NUMBER IS vn_individual_expense NUMBER(10);
+BEGIN 
+	SELECT SUM(c.total_amount)
+	INTO vn_individual_expense
+	FROM accommodation a, TABLE(a.cost)c
+	WHERE accommodation_id = in_accommodation_id;
+
+	RETURN vn_individual_expense;
+
+END func_Sum_total_amount;
+/
+SHOW ERRORS;
+
+CREATE OR REPLACE PROCEDURE proc_total_expense_func_user(in_accommodation_id NUMBER) IS
+	vn_expense_made_individually NUMBER(10);
+
+BEGIN 
+	vn_expense_made_individually := func_sum_total_amount(in_accommodation_id);
+ 
+	DBMS_OUTPUT.PUT_LINE('The total expenses made was ' ||  vn_expense_made_individually);
+
+EXCEPTION
+      WHEN no_data_found THEN 
+      	dbms_output.put_line('We cannot find any data according to given detail');
+   	WHEN others THEN 
+      	dbms_output.put_line('Opps! wrong!');
+END proc_total_expense_func_user;
+/
+SHOW ERRORS;
+EXECUTE proc_total_expense_func_user(1);
+
+
+CREATE OR REPLACE FUNCTION func_after_service(in_total_amount NUMBER)
+RETURN NUMBER IS 
+vn_after_service NUMBER(10);
+BEGIN
+    vn_after_service := in_total_amount + (0.5 * in_total_amount);
+RETURN vn_after_service;
+END func_after_service;
+/
+SHOW ERRORS;
+
+
+
+CREATE OR REPLACE FUNCTION func_find_total_tax(in_total_amount NUMBER)
+RETURN NUMBER IS 
+vn_after_vat NUMBER(10);
+vn_after_all NUMBER(10);
+BEGIN
+    vn_after_vat := in_total_amount +  (0.13 * in_total_amount);
+    vn_after_all := func_after_service(vn_after_vat);
+RETURN vn_after_all;
+END func_find_total_tax;
+/
+SHOW ERRORS;
+
+CREATE OR REPLACE PROCEDURE proc_find_amount(in_accommodation_id NUMBER) IS
+vn_total_cost NUMBER(10);
+vn_user_to_id NUMBER(10);
+BEGIN
+    SELECT c.total_amount
+    INTO vn_total_cost
+    FROM accommodation a, TABLE(a.cost)c
+    WHERE accommodation_id =  in_accommodation_id;
+
+    vn_total_cost := func_find_total_tax(vn_total_cost);
+    DBMS_OUTPUT.PUT_LINE('The total bill after tax and service charge is ' ||  vn_total_cost);
+
+EXCEPTION
+      WHEN no_data_found THEN 
+          dbms_output.put_line('We cannot find any data according to given detail');
+       WHEN others THEN 
+          dbms_output.put_line('Opps! wrong!');
+END proc_find_amount;
+/
+SHOW ERRORS;
+EXECUTE proc_find_amount(1);
+
+CREATE OR REPLACE FUNCTION func_avg_rating RETURN NUMBER IS
+vn_avg NUMBER(5);
+BEGIN 
+	SELECT AVG(review_point)
+	INTO vn_avg
+	FROM review;
+RETURN vn_avg;
+END func_avg_rating;
+/
+SHOW ERRORS;
+
+CREATE OR REPLACE PROCEDURE proc_avg_rating AS
+	vn_avg NUMBER(5):= func_avg_rating;
+BEGIN
+	IF vn_avg>0 THEN
+		DBMS_OUTPUT.PUT_LINE('There is average '|| vn_avg || ' rating in the system.');
+	ELSE 
+		DBMS_OUTPUT.PUT_LINE('There is no rating available.');
+	END IF;
+END proc_avg_rating;
+/
+SHOW ERRORS;
+EXECUTE proc_avg_rating;
+
+--TRIGGER RITESH RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+
+CREATE OR REPLACE TRIGGER trig_insertable_rsetting
+BEFORE INSERT OR UPDATE ON retreat_setting
+FOR EACH ROW
+DECLARE
+	vn_count_sid NUMBER(10);
+	vn_count_rid NUMBER(10);
+BEGIN
+	SELECT COUNT(setting_id)
+	INTO vn_count_sid
+	FROM setting
+	WHERE setting_id = :NEW.setting_id;
+
+	SELECT COUNT(retreat_id)
+	INTO vn_count_rid
+	FROM retreat
+	WHERE retreat_id = :NEW.retreat_id;
+
+IF vn_count_sid < 1 THEN
+	RAISE_APPLICATION_ERROR(-20000,'There is no reference data with the given id in 
+the settings table');
+ELSE NULL;
+END IF;
+IF vn_count_rid < 1 THEN
+	RAISE_APPLICATION_ERROR(-20000,'There is no reference data with the given id in 
+the retreat table');
+ELSE NULL;
+END IF;
+END trig_insertable_rsetting;
+/
+SHOW ERRORS;
+INSERT INTO retreat_setting
+VALUES (9, 1, 2);
+INSERT INTO retreat_setting
+VALUES (10, 100, 2);
+INSERT INTO retreat_setting
+VALUES (11, 1, 200);
+
+CREATE OR REPLACE TRIGGER trigger_accomo_sty_name
+BEFORE INSERT ON accommodation_style
+FOR EACH ROW
+DECLARE
+	vn_coll NUMBER(3);
+BEGIN
+	SELECT COUNT(accommodation_type) INTO vn_coll FROM accommodation_style 
+	WHERE accommodation_type = :NEW.accommodation_type;
+	IF vn_coll>0 THEN
+		RAISE_APPLICATION_ERROR (-20001,'ERROR! THE PROVIDED Name ALREADY EXISTS, SO DELETE YOU exiting REVIEW and TRY AGAIN');
+	END IF;
+END trigger_accomo_sty_name;
+/
+SHOW ERRORS;
+INSERT INTO accommodation_style
+VALUES (7, 'wood house', 'house made of wood');
+INSERT INTO accommodation_style
+VALUES (8, 'wood house', 'house made of wood');
+
+CREATE OR REPLACE PROCEDURE proc_retreat(val IN retreat.retreat_id%TYPE)
+IS r_id retreat.retreat_id%TYPE;
+   r_name retreat.retreat_name%TYPE;
+   r_description retreat.description%TYPE;
+
+BEGIN
+SELECT retreat_id, retreat_name, description
+INTO r_id, r_name, r_description
+FROM retreat
+WHERE retreat_id=val;
+
+		DBMS_OUTPUT.PUT_LINE('retreat_id' || '        '|| 'retreat_name' ||'                '||'description');
+		DBMS_OUTPUT.PUT_LINE(r_id || '                 '|| r_name ||'                       '|| r_description);
+
+EXCEPTION
+      WHEN no_data_found THEN 
+      dbms_output.put_line('There is no data available');
+   WHEN others THEN 
+      dbms_output.put_line('Error!'); 
+
+END proc_retreat;
+/
+SHOW ERRORS;
+EXECUTE proc_retreat(1);
+
+CREATE OR REPLACE PROCEDURE proc_retreat_setting
+IS s_id retreat_setting.retreat_setting_id%TYPE;
+
+BEGIN
+for c in (SELECT retreat_setting_id INTO s_id FROM retreat_setting)
+
+loop
+	s_id := c.retreat_setting_id;
+	dbms_output.put_line(s_id);
+end loop;
+
+END proc_retreat_setting;
+/
+SHOW ERRORS;
+EXECUTE proc_retreat_setting;
+
+
+--CURSOR TSHERING TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+
+CREATE OR REPLACE PROCEDURE proc_setting_retreat IS
+c_setting_name VARCHAR2(50);
+c_setting_desc VARCHAR2(50);
+c_retreat_name VARCHAR2(50);
+c_retreat_desc VARCHAR2(50);
+CURSOR cs_retval IS
+SELECT s.setting_name,s.description,r.retreat_name,r.description
+FROM setting s 
+JOIN retreat_setting rs 
+ON s.setting_id = rs.setting_id 
+JOIN retreat r
+ON r.retreat_id = rs.retreat_id;
+BEGIN 
+OPEN cs_retval;
+	LOOP
+    	FETCH cs_retval INTO c_setting_name,c_setting_desc,c_retreat_name,c_retreat_desc;
+	EXIT WHEN cs_retval%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Setting name: ' || c_setting_name);
+        DBMS_OUTPUT.PUT_LINE('Setting desc: ' ||  c_setting_desc);
+        DBMS_OUTPUT.PUT_LINE('Retreat name: ' ||  c_retreat_name);
+        DBMS_OUTPUT.PUT_LINE('Retreat desc: ' ||  c_retreat_desc);
+        DBMS_OUTPUT.PUT_LINE('');
+    END LOOP;
+EXCEPTION
+    WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE(SQLERRM);
+END proc_setting_retreat;
+/
+SHOW ERRORS;
+EXECUTE proc_setting_retreat;
+
+
+
+DECLARE
+      v_name VARCHAR2(30);
+      v_desc VARCHAR2(45);
+
+	CURSOR cur_rev_name IS
+	SELECT user_name, feedback
+	FROM review
+	WHERE review_point >= 4;
+BEGIN
+  OPEN cur_rev_name;
+  LOOP 
+     FETCH cur_rev_name INTO v_name, v_desc;
+     EXIT WHEN cur_rev_name%NOTFOUND;
+		DBMS_OUTPUT.PUT_LINE('-----------------------------------------------------------------------');
+		DBMS_OUTPUT.PUT_LINE('NAME' ||'                                                '||'FEEDBACK');
+		DBMS_OUTPUT.PUT_LINE(v_name ||'                                                '||v_desc);
+		DBMS_OUTPUT.PUT_LINE('-----------------------------------------------------------------------');
+	END LOOP;
+      CLOSE cur_rev_name;
+
+END;
+/
+SHOW ERRORS;
